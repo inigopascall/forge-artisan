@@ -1,0 +1,25 @@
+#!/bin/bash
+
+SITE_NAME=$(pwd | sed -E 's|^/home/[^/]+/([^/]+)/current.*|\1|')
+SITE_CONFIG="/etc/nginx/sites-available/$SITE_NAME"
+
+if [ ! -f "$SITE_CONFIG" ]; then
+    echo "Error: No nginx config found at $SITE_CONFIG"
+    exit 1
+fi
+
+FORGE_ID=$(grep -oP 'forge-conf/\K[0-9]+' "$SITE_CONFIG" | head -1)
+
+if [ -z "$FORGE_ID" ]; then
+    echo "Error: Could not extract Forge ID from $SITE_CONFIG"
+    exit 1
+fi
+
+PHP_VERSION=$(grep -oP "php\K[0-9]\.[0-9]" "/etc/nginx/forge-conf/$FORGE_ID/site.conf" | head -1)
+
+if [ -z "$PHP_VERSION" ]; then
+    echo "Error: Could not find PHP version in /etc/nginx/forge-conf/$FORGE_ID/site.conf"
+    exit 1
+fi
+
+exec php${PHP_VERSION} artisan "$@"
